@@ -1,0 +1,1560 @@
+<!-- Game Tab Cloaker (fetch mode, with console, Unity WebGL support) - redesigned UI -->
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap">
+<style>
+:root{color-scheme:dark;--bg:#15171b;--bar:#22252b;--bar2:#1a1c21;--card:#1d2026;--field:#121418;--tile:#101114;--plate:#1b1d23;--line:#3a3e46;--hover:#4a5568;--text:#e8eaed;--muted:#a3a9b3;--accent:#6ea8fe;--on-accent:#0b1220;--glow:rgba(110,168,254,.3);--err:#f28b82;--gear:#7fb2e8;--scrim:rgba(8,9,12,.72);--display:"Oswald","Arial Narrow","Roboto Condensed",Impact,sans-serif}
+:root[data-theme="light"]{color-scheme:light;--bg:#eceff3;--bar:#ffffff;--bar2:#f5f6f8;--card:#ffffff;--field:#ffffff;--tile:#ffffff;--plate:#f1f3f6;--line:#b9c0cb;--hover:#7d8798;--text:#171a20;--muted:#4b5260;--accent:#1a5fd0;--on-accent:#ffffff;--glow:rgba(26,95,208,.28);--err:#b3261e;--gear:#35527f;--scrim:rgba(20,22,28,.5)}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{display:flex;flex-direction:column;overflow:hidden;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+button,input{font:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+header{padding:14px 20px 12px;text-align:center;background:var(--bar);border-bottom:2px solid var(--line)}
+h1{margin:0;font:600 28px/1.1 var(--display);letter-spacing:.02em}
+
+.bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:12px 20px;background:var(--bar2);border-bottom:2px solid var(--line)}
+input[type=text]{width:100%;padding:10px 12px;border-radius:6px;border:1px solid var(--line);background:var(--field);color:var(--text);font-size:15px}
+input::placeholder{color:var(--muted);opacity:1}
+#search{flex:0 1 320px;width:auto;min-width:160px}
+.status{flex:1 1 220px;font-size:13px;line-height:1.4;color:var(--muted)}
+.msg{color:var(--err)}
+.msg:empty{display:none}
+
+/* The games list: this is the part that scrolls, and it scrolls up and down */
+main{flex:1;min-height:0;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;padding:20px;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+.empty{display:none;padding:40px 0;text-align:center;color:var(--muted)}
+
+.gcard{position:relative;display:flex;flex-direction:column;aspect-ratio:3/4;padding:0;overflow:hidden;border:2px solid transparent;border-radius:4px;background:var(--tile);color:var(--text);text-align:left;cursor:pointer;transition:border-color .15s}
+.gcard:hover{border-color:var(--hover)}
+.gcard.sel{border-color:var(--accent);box-shadow:0 0 0 3px var(--glow)}
+.gcard .art{flex:1 1 0;min-height:0;width:100%;display:grid;place-items:center;font:600 56px var(--display);color:rgba(255,255,255,.82)}
+.gcard img.art{display:block;object-fit:cover;background:var(--plate)}
+.gcard .gname{padding:9px 10px;border-top:2px solid var(--line);background:var(--plate);font:600 15px/1.2 var(--display);letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+footer{position:relative;display:flex;align-items:center;justify-content:center;gap:8px;padding:8px;background:var(--bar);border-top:2px solid var(--line)}
+.gear{display:grid;place-items:center;width:44px;height:44px;border:0;border-radius:50%;background:transparent;color:var(--gear);cursor:pointer;transition:transform .3s,color .15s}
+.gear:hover{color:var(--accent);transform:rotate(45deg)}
+.news{display:grid;place-items:center;width:44px;height:44px;border:0;border-radius:50%;background:transparent;color:var(--gear);cursor:pointer;transition:transform .15s,color .15s}
+.news:hover{color:var(--accent);transform:scale(1.15)}
+
+.overlay{position:fixed;inset:0;z-index:10;display:none;align-items:center;justify-content:center;padding:16px;background:var(--scrim)}
+.overlay.open{display:flex}
+.panel{width:100%;max-width:460px;max-height:100%;overflow-y:auto;padding:20px 22px 22px;border:1px solid var(--line);border-radius:12px;background:var(--card)}
+.phead{display:flex;align-items:center;justify-content:space-between}
+h2{margin:0;font:600 22px/1.2 var(--display);letter-spacing:.02em}
+.done{padding:8px 18px;border:0;border-radius:6px;background:var(--accent);color:var(--on-accent);font-weight:600;cursor:pointer}
+label,.lbl{display:block;margin:16px 0 6px;font-size:13px;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.chip{padding:6px 11px;border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--text);font-size:13px;cursor:pointer}
+.chip:hover{border-color:var(--accent)}
+.preview{display:flex;align-items:center;gap:10px;margin-top:14px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--field);font-size:13px;color:var(--muted)}
+.preview img{width:18px;height:18px;border-radius:3px}
+.preview strong{color:var(--text);font-weight:500}
+.note{margin-top:8px;font-size:12px;line-height:1.5;color:var(--muted)}
+hr{margin:18px 0 6px;border:0;border-top:1px solid var(--line)}
+.check{display:flex;align-items:flex-start;gap:8px;margin:12px 0 0;font-size:13px;line-height:1.4;color:var(--text);cursor:pointer}
+.check input{margin-top:2px}
+
+.gcard.add{align-items:center;justify-content:center;gap:4px;border-style:dashed;border-color:var(--line);background:transparent;color:var(--muted);font:600 15px var(--display)}
+.gcard.add:hover{border-color:var(--accent);color:var(--text)}
+.gcard.add .plus{font:400 44px/1 system-ui,sans-serif}
+.mrow{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;font-size:13px}
+.mrow span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rmbtn{padding:4px 10px;border:1px solid var(--line);border-radius:6px;background:transparent;color:var(--text);cursor:pointer}
+.rmbtn:hover{border-color:var(--err);color:var(--err)}
+.gear .hole{fill:var(--bar)}
+.book{position:absolute;right:12px;top:50%;transform:translateY(-50%);display:grid;place-items:center;width:44px;height:44px;border:0;border-radius:50%;background:transparent;color:var(--gear);cursor:pointer;transition:color .15s}
+.book:hover{color:var(--accent)}
+.seg{display:inline-flex;overflow:hidden;border:1px solid var(--line);border-radius:8px}
+.seg button{padding:8px 20px;border:0;background:transparent;color:var(--text);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);font-weight:600}
+.panel.wide{max-width:660px}
+.nitem{margin:18px 0 0;padding-bottom:20px;border-bottom:1px solid var(--line)}
+.nitem:last-child{padding-bottom:0;border-bottom:0}
+.nitem img{display:block;width:100%;max-height:220px;object-fit:cover;margin-bottom:12px;border:1px solid var(--line);border-radius:8px;background:var(--plate)}
+.help .nitem h3{margin:0 0 6px}
+.help .nitem p{margin:0}
+.help h3{margin:22px 0 6px;font:600 17px/1.3 var(--display);letter-spacing:.02em}
+.help p,.help li{max-width:68ch;font-size:14px;line-height:1.65}
+.help p{margin:0 0 8px}
+.help ul{margin:6px 0 8px;padding-left:20px}
+.help li{margin-bottom:4px}
+.help code{padding:1px 5px;border:1px solid var(--line);border-radius:4px;background:var(--field);font-size:12.5px}
+
+@media (max-width:520px){
+  main{padding:14px}
+  .grid{grid-template-columns:repeat(2,1fr);gap:10px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none !important}}
+</style>
+
+<header><h1>Just A Game Site</h1></header>
+
+<div class="bar">
+  <input type="text" id="search" placeholder="Search games" autocomplete="off" aria-label="Search games">
+  <div class="status">Click a game once to select it, then click it again to play.<div class="msg" id="msg"></div></div>
+</div>
+
+<main>
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty">No games match your search.</div>
+</main>
+
+<footer>
+  <button class="gear" id="gear" type="button" aria-label="Settings" title="Settings">
+    <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true">
+      <circle cx="12" cy="12" r="8.2" fill="none" stroke="currentColor" stroke-width="3.2" stroke-dasharray="3.22 3.22"/>
+      <circle cx="12" cy="12" r="6.6" fill="currentColor"/>
+      <circle class="hole" cx="12" cy="12" r="2.6"/>
+    </svg>
+  </button>
+<button class="news" id="news" type="button" aria-label="What's new" title="news">
+    <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+    </svg>
+  </button>
+  <button class="book" id="book" type="button" aria-label="How it works" title="Documentation">
+    <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">
+      <path d="M12 6.5C10.3 5.3 8 4.8 3.5 5v13c4.5-.2 6.8.3 8.5 1.5 1.7-1.2 4-1.7 8.5-1.5V5C16 4.8 13.7 5.3 12 6.5z"/>
+      <path d="M12 6.5v13"/>
+    </svg>
+  </button>
+</footer>
+
+<input type="hidden" id="target">
+<input type="file" id="filePick" accept=".html,.htm,text/html" multiple hidden>
+<button id="go" type="button" hidden></button>
+
+<div class="overlay" id="overlay">
+  <div class="panel" id="panel" role="dialog" aria-modal="true" aria-labelledby="stitle" tabindex="-1">
+    <div class="phead"><h2 id="stitle">Settings</h2><button class="done" id="sclose" type="button">Done</button></div>
+
+    <div class="lbl" id="themeLbl">Appearance</div>
+    <div class="seg" role="group" aria-labelledby="themeLbl">
+      <button type="button" id="themeDark" aria-pressed="true">Dark</button>
+      <button type="button" id="themeLight" aria-pressed="false">Light</button>
+    </div>
+
+    <label for="cloak">Disguise site address</label>
+    <input type="text" id="cloak" placeholder="docs.google.com" autocomplete="off">
+    <div class="chips" id="chips"></div>
+
+    <label for="title">Tab name</label>
+    <input type="text" id="title" placeholder="Defaults to the disguise site's name" autocomplete="off">
+
+    <div class="preview"><img id="pfav" alt=""><span>Tab will read: <strong id="ptitle">—</strong></span></div>
+    <div class="note">A disguise is picked at random each time a game opens, until you choose or type one here.</div>
+
+    <div class="lbl">Your game files</div>
+    <div id="mine"></div>
+    <div class="note">Add HTML game files with the + tile at the end of the games list. They are stored in this browser only.</div>
+
+    <hr>
+    <label class="check"><input type="checkbox" id="showConsole">
+      <span>Show a console in the game tab (lists failed downloads, script errors and what the loader is doing)</span></label>
+    <label class="check"><input type="checkbox" id="useProxy" checked>
+      <span>If the direct fetch is blocked, retry through a public CORS proxy (its operator can see the page you load)</span></label>
+    <label class="check"><input type="checkbox" id="confirmClose" checked>
+      <span>Ask before closing the game tab (so you don't lose progress by accident)</span></label>
+    <label class="check"><input type="checkbox" id="leave">
+      <span>After opening, send this tab to the disguise site (hides this page's address and title)</span></label>
+  </div>
+</div>
+
+<div class="overlay" id="newsOverlay">
+  <div class="panel wide" id="newsPanel" role="dialog" aria-modal="true" aria-labelledby="ntitle" tabindex="-1">
+    <div class="phead"><h2 id="ntitle">What's new</h2><button class="done" id="nclose" type="button">Done</button></div>
+    <div class="help" id="newsList"></div>
+  </div>
+</div>
+
+<div class="overlay" id="helpOverlay">
+  <div class="panel wide" id="helpPanel" role="dialog" aria-modal="true" aria-labelledby="htitle" tabindex="-1">
+    <div class="phead"><h2 id="htitle">How it works</h2><button class="done" id="hclose" type="button">Done</button></div>
+    <div class="help">
+      <h3>The short version</h3>
+      <p>Pick a game and the launcher opens it in a new tab that looks like another website: it borrows that site's icon and a tab name you choose. Nothing is installed, and the game still runs from its original website.</p>
+
+      <h3>Playing a game</h3>
+      <ul>
+        <li>Click a game once to select it (it gets a blue outline), then click it again to open it.</li>
+        <li>The search box filters the list by name. The list scrolls up and down with your mouse wheel.</li>
+        <li>To add a game, find the <code>EXAMPLES</code> list near the top of the code and copy one line. Change the name and the address (the link to the game's <code>index.html</code>). You can also add <code>img</code> with the address of a cover picture of your choice, which is used instead of the automatic one.</li>
+        <li>To add news, find the <code>NEWS</code> list just below it and copy one block. Give it a <code>title</code>, the <code>text</code>, and optionally an <code>img</code> address for a picture. Put the newest block at the top.</li>
+      </ul>
+
+      <h3>What happens when you open a game</h3>
+      <ul>
+        <li>A new tab is created and given the disguise: the icon of the disguise site and the tab name you chose.</li>
+        <li>That tab downloads the game's page as text. It tries the game's website directly first. If the site refuses and the public relay option is on, it retries through public relay services, one after another.</li>
+        <li>The page is then started inside a frame, set up so the game finds its files at its own website instead of looking in the wrong place. Inline scripts that check the page's address are pointed at the game's real address, which stops many games from crashing.</li>
+        <li>If a file the game asks for fails to download, the launcher races several alternatives (the original address, the game's folder, mirrors of the same file when one exists, then the relay services). It uses the first that answers, remembers which route worked so later files load faster, and gives each attempt 15 seconds.</li>
+        <li>Unity games get extra fixes: compressed <code>.gz</code> files are unpacked if they arrive still compressed, and <code>.wasm</code> files are labelled correctly.</li>
+        <li>Flash games (run by Ruffle) need the extra details their own script tag carries, such as which Flash file to play. The launcher keeps those details when it has to fetch a script another way. These games use a fixed-size player, so they stay smaller than the tab.</li>
+        <li>If the browser blocks cookies or saved data inside the frame, the game gets a temporary in-memory stand-in so it can still start. In that case its saves may not survive closing the tab.</li>
+      </ul>
+
+      <h3>Game covers</h3>
+      <p>Each game's picture is looked up automatically by its name followed by the word game, first on the App Store and then on Wikipedia as a backup. The launcher takes the best match that has a picture and uses it as the cover. Found pictures are remembered in this browser, so they appear instantly next time. If nothing matches, the lookup fails, or you are offline, the card keeps its colored background and first letter. Obscure games often have no listing; for those, add <code>img</code> to the game's line in the <code>EXAMPLES</code> list.</p>
+
+      <h3>Adding your own game files</h3>
+      <p>Games saved as a single HTML file work too. Click the <b>+ Add game file</b> tile at the end of the list and pick one or several files. Each file is read in your browser and kept there, so nothing is uploaded anywhere, and it appears in the list like any other game. Selecting it and clicking again opens it in the same disguised tab, with the same console, but with no download step because the file goes straight into the game tab. The public relay option does not matter for these.</p>
+      <p>Remove a file in Settings, under <b>Your game files</b>. Files live in this browser only, so a different browser or cleared browsing data starts without them. If the browser does not allow saving, a file lasts only until you close the page.</p>
+
+      <h3>The console</h3>
+      <p>The console starts off; tick it in Settings to use it. When it is on, the game tab has a small <b>console</b> button in its bottom-left corner. It turns red and counts errors when something goes wrong. Click it for a timestamped log of what the loader is doing, failed downloads and script errors. <b>Problems only</b> hides the routine messages, <b>Copy</b> copies the whole log so you can send it to someone, and <b>Clear</b> empties it. Repeated messages are folded into one line with a count.</p>
+
+      <h3>Settings (the gear)</h3>
+      <ul>
+        <li><b>Appearance:</b> switches this launcher between dark and light. It does not change the game tab. Your choice is remembered in this browser when the editor allows it.</li>
+        <li><b>Disguise site address:</b> the website the tab pretends to be. Its icon is used for the tab. The preset buttons fill in both the address and a matching tab name.</li>
+        <li><b>Tab name:</b> what the tab title says. If you leave it empty, the site's name is used.</li>
+        <li>Until you pick a preset or type your own, a random disguise is chosen every time a game opens. Reload the launcher to go back to random.</li>
+      </ul>
+      <p>The four checkboxes (the console and the send-this-tab option start off; the other two start on):</p>
+      <ul>
+        <li><b>Console:</b> adds the console button to the game tab.</li>
+        <li><b>Public relay:</b> allows retries through public relay services. Their operators can see which page you load, so turn it off if that bothers you. Without it, games on sites that block direct access may fail to load.</li>
+        <li><b>Ask before closing:</b> the browser asks for confirmation before the game tab closes, so a stray click does not lose your progress.</li>
+        <li><b>Send this tab to the disguise site:</b> a moment after the game opens, the launcher tab itself navigates to the disguise site, so the launcher's address and title are not left behind. Inside an online editor's preview, only the preview pane is sent there, not the whole browser tab.</li>
+      </ul>
+
+      <h3>The bottom buttons</h3>
+      <p>The gear (Settings) and the megaphone (What's new, a short list of the latest features and changes) sit in the middle. The book at the right is this page.</p>
+
+      <h3>If something goes wrong</h3>
+      <ul>
+        <li><b>Nothing opens:</b> the editor is blocking pop-ups. Allow pop-ups for it, or open the editor's preview in its own full tab and try again. If the tab opens but shows the editor's domain in the address bar, the editor only allows a fallback method; the game still works.</li>
+        <li><b>The game page could not be fetched:</b> the site does not let other pages read it. Turn on the public relay option, or try a different game.</li>
+        <li><b>Black screen or a game that never starts:</b> open the console and look for red lines. A line naming a file means that download failed even after the retries. Use Copy to share the log.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  // Sites listed here are opened in the frame by their real address instead of being downloaded as text first.
+  // Needed for pages that read ?options from their own address (like the Mario Kart 64 emulator).
+  var DIRECT_HOSTS = ["ccported.github.io"];
+
+  var PROXIES = [
+    "https://corsproxy.io/?url={url}",
+    "https://api.allorigins.win/raw?url={url}"
+  ];
+
+  var PRESETS = [
+    { name: "Google Docs",      url: "https://docs.google.com/document/u/0/",      title: "Google Docs" },
+    { name: "Google Classroom", url: "https://classroom.google.com/h/st", title: "Home - Classroom" },
+    { name: "Google Drive",     url: "https://drive.google.com/drive/u/0/home",     title: "Home - Google Drive" },
+    { name: "Gmail",            url: "https://mail.google.com/mail/u/0/#inbox",      title: "Inbox (215) - hiiiii@gmail.com - Gmail" },
+    { name: "IXL",            url: "https://www.ixl.com/dashboard",      title: "Student Dashboard | IXL Learning" },
+    { name: "Google",           url: "https://www.google.com/",           title: "Google" }
+  ];
+
+  // To add a game: copy a line, change name and url. "img" is optional: paste an image address to use as the cover.
+  // Leave "img" out (or if that picture fails to load) and the cover is looked up automatically on the App Store, then Wikipedia.
+  var EXAMPLES = [
+    { name: "Super Mario 64", url: "https://ccported.click/emulator?core=n64&rom=super_mario_64_(USA)", img:"https://i1.sndcdn.com/artworks-000399254577-2vql7e-t500x500.jpg" },
+    { name: "Mario Kart 64", url: "https://ccported.github.io/emulator?core=n64&rom=mario_kart_64_(USA)", img:"https://m.media-amazon.com/images/M/MV5BOTljNDc5MDctNzBkOS00MzkzLThjNzAtZmZmOWQyY2Y1Zjk3XkEyXkFqcGc@._V1_.jpg" },
+    { name: "Undertale", url: "https://ccported.click/games/game_f23f_aa7b2677e4e1c8/index.html", img:"https://i0.wp.com/www.loadingdeveloper.com/wp-content/uploads/2018/01/Undertale-Cover-art.jpg?fit=1280%2C720&ssl=1" },
+    { name: "Undertale Yellow", url: "https://ccported.click/games/game_6839_efd317ed7c584/index.html", img:"https://fivenightsatfreddysgame.io/assets/upload/fnaf/webp/undertale-yellow.webp" },
+    { name: "Deltarune", url: "https://ccported.click/games/game_0589_030b0508b5a5e8/index.html", img:"https://i.redd.it/dcgg80s76sse1.jpeg" },
+    { name: "Raft", url: "https://ccported.click/games/game_5cdd_b316112504176/index.html", img:"https://images.steamusercontent.com/ugc/1833541252454295286/49586C84366C361A585FA8CBAD7608DC67D71C97/?imw=512&imh=512&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true" },
+    { name: "Buckshot Roulette", url: "https://ccported.click/games/game_b2b0_703f02844305a/index.html", img:"https://m.media-amazon.com/images/M/MV5BZDAwMTMzZDUtZDE4OC00MjE3LWFiMzgtN2Q2NzcwMWNjMGMzXkEyXkFqcGc@._V1_.jpg" },
+    { name: "10 Minutes till Dawn", url: "https://ccported.click/games/game_e8f6_e561b34a933b18/index.html", img:"https://img.itch.zone/aW1nLzg3MTU5NzMucG5n/original/0LqGxb.png" },
+    { name: "Hollow Knight", url: "https://ccported.click/games/game_c548_229f0f5dbd3a88/index.html", img:"https://upload.wikimedia.org/wikipedia/en/d/de/Hollow_Knight_2026_cover_art.jpg?utm_source=en.wikipedia.org&utm_campaign=index&utm_content=original" },
+    { name: "Stickman Hook", url: "https://ccported.click/games/game_b595_328b8e01b7685/index.html", img:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTZaYE4inbbej--pVyc-qTUCN6q6_LLZfssUwnO0YdynqjhhJrVKxajw3-1&s=10" },
+    { name: "Five Nights at Freddy’s", url: "https://ccported.click/games/game_de53_e3faf6a5482a1/index.html", img:"https://cdn.mobygames.com/covers/7096731-five-nights-at-freddys-windows-front-cover.jpg" },
+    { name: "Pacman", url: "https://ccported.click/games/game_d085_b71dcdf0ba604/index.html", img:"https://images.igdb.com/igdb/image/upload/t_cover_big/co2dz8.webp" },
+    { name: "Brotato", url: "https://ccported.click/games/game_b6ac_ec7f4b227e2ce8/index.html", img:"https://play-lh.googleusercontent.com/wjYph3dbtJXklfdt2yIQAEnH5ov2ZyuAPr7B0PqNJ29AhcEZX9EhOJT5hsa84tEMYIH3I-3-sSxzo04ULZ-YEg" },
+    { name: "Karlson", url: "https://ccported.click/games/game_7ce3_9385c3de1d8bc8/index.html", img:"https://images.igdb.com/igdb/image/upload/t_cover_big/co1xqx.webp" },
+    { name: "The Binding of Issac", url: "https://ccported.click/games/game_b1f3_ed3dbe4733f8a8/index.html", img:"https://upload.wikimedia.org/wikipedia/en/e/e1/The_Binding_of_Issac_Rebirth_cover.jpg?utm_source=en.wikipedia.org&utm_campaign=index&utm_content=original" },
+    { name: "Minecraft", url: "https://achcodegod.github.io/Minecraft/", img:"https://upload.wikimedia.org/wikipedia/commons/f/fb/Minecraft-creeper-face.jpg?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=original" },
+    { name: "Polytrack", url: "https://ccported.click/games/game_ce7b_8596860b05d55/index.html", img:"https://img.itch.zone/aW1nLzI2MDUxNTMzLnBuZw==/original/AEnurg.png" },
+    { name: "Geometry Dash", url: "https://ccported.click/games/game_28d8_bb38d44c326f3/index.html", img:"https://assets-prd.ignimgs.com/2021/12/14/geometrydash-1639510868467.jpg?crop=1%3A1%2Csmart&format=jpg&auto=webp&quality=80" },
+    { name: "BTD5", url: "https://ccgstatic.com/games/game_cf40_bc827595acce8/index.html", img:"https://play-lh.googleusercontent.com/XrHBbkswUfbhFWEhAmck6WKw1FFUYy3gWNB9xgGPea1SbwVhgHPF-6ZbEQFLj-gwBW9LuAfe10rYG54EQWj0aQ" }
+  ];
+
+  // To add news: copy a block, change title and text. Newest goes at the TOP.
+  //   title: the heading.   text: the details (you can use <code>, <b> and <a> tags).
+  //   img:   optional, the address of a picture shown above the title. Leave it out for no picture.
+  var NEWS = [
+    {
+      title: "Super Mario 64 and Minecraft no longer offline games",
+      img: "https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/cdb6ceaf-da99-4ba4-a511-7810190e4182/df1uf0o-562b6bb1-4707-4f71-ac6c-c727bdd33f55.png/v1/fill/w_1055,h_757,q_70,strp/3d_render_mario_64_in_minecraft_by_zdooarte_df1uf0o-pre.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7ImhlaWdodCI6Ijw9MTk0NSIsInBhdGgiOiIvZi9jZGI2Y2VhZi1kYTk5LTRiYTQtYTUxMS03ODEwMTkwZTQxODIvZGYxdWYwby01NjJiNmJiMS00NzA3LTRmNzEtYWM2Yy1jNzI3YmRkMzNmNTUucG5nIiwid2lkdGgiOiI8PTI3MTAifV1dLCJhdWQiOlsidXJuOnNlcnZpY2U6aW1hZ2Uub3BlcmF0aW9ucyJdfQ.rikDKJmAQB-GNwhInd1vECMUt9LJ1-8Eg0pUV4XI7b4",
+      text: "Super Mario 64 and Minecraft are now links meaning your system will run faster, and smoother than ever."
+    },
+    {
+      title: "Mario Kart 64 added",
+      img: "https://m.media-amazon.com/images/M/MV5BOTljNDc5MDctNzBkOS00MzkzLThjNzAtZmZmOWQyY2Y1Zjk3XkEyXkFqcGc@._V1_.jpg",
+      text: "Mario Kart 64 is now the first game in the list. The big built-in Super Mario Kart and the name box in Settings are gone, which also makes this file much smaller."
+    },
+     {
+      title: "Super Mario Kart is built in",
+      img: "https://i.ytimg.com/vi/iLPr_anljuw/maxresdefault.jpg",
+      text: "It is the first tile in the list and needs no download or setup. Click it once to select it, then again to play."
+    },
+    {
+      title: "Your name on leaderboards",
+      img: "https://www.simbasible.com/wp-content/uploads/2023/12/33-4.jpg",
+      text: "Type your name in Settings and the launcher hands it to Mario Kart each time you open it, so the leaderboard shows you instead of a random player number. Only letters, numbers, <code>-</code> and <code>_</code> are allowed, up to 20 characters."
+    },
+    {
+      title: "Isaac and BTD5 fixed",
+      img: "https://i.redd.it/what-do-yall-think-is-played-more-today-v0-st5zznkxj1hc1.jpg?width=1513&format=pjpg&auto=webp&s=534fee607ac00a7ed7fd0540dc997eba64220632",
+      text: "The two Flash games that stopped on an error now load. They run in Ruffle's fixed-size player, so they stay smaller than the tab."
+    },
+    {
+      title: "Tidier starting settings",
+      img: "https://cdn.document360.io/f5889a21-4b9d-49ff-a4a7-03538c6b843a/Images/Documentation/image%28314%29.png",
+      text: "The console and \"send this tab to the disguise site\" now start off. Turn either on in Settings. Inside an online editor's preview, the second one sends only the preview pane to the disguise site."
+    },
+    {
+      title: "This news page",
+      img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR6PSNkOqnOxeZH_JRR__XVN2PO_f2QUtSyjtS4eI75SA&s=10",
+      text: "The megaphone next to the gear will list new features and changes from now on."
+    }
+  ];
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  function normalizeSite(raw) {
+    raw = (raw || "").trim();
+    if (!raw) return null;
+    if (!/^https?:\/\//i.test(raw)) raw = "https://" + raw;
+    try {
+      var u = new URL(raw);
+      return u.hostname.indexOf(".") > -1 ? u : null;
+    } catch (e) { return null; }
+  }
+
+  function normalizeGame(raw) {
+    raw = (raw || "").trim();
+    if (!raw) return null;
+    if (raw.charAt(0) === "/") raw = "https://ccported.click" + raw;
+    return normalizeSite(raw);
+  }
+
+  function defaultTitle(u) {
+    var parts = u.hostname.replace(/^www\./, "").split(".");
+    var name = parts.length > 1 ? parts[parts.length - 2] : parts[0];
+    return name.charAt(0).toUpperCase() + name.slice(1);
+  }
+
+  function favicon(u) {
+    return "https://www.google.com/s2/favicons?sz=64&domain=" + encodeURIComponent(u.hostname);
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+  }
+
+  function safeJSON(o) {
+    return JSON.stringify(o).replace(/</g, "\\u003c");
+  }
+
+  // ---- Games grid ----
+  function letterArt(g) {
+    var h = 0;
+    for (var i = 0; i < g.name.length; i++) h = (h * 31 + g.name.charCodeAt(i)) % 360;
+    var d = document.createElement("div");
+    d.className = "art";
+    d.style.background = "linear-gradient(160deg,hsl(" + h + " 42% 34%),hsl(" + ((h + 35) % 360) + " 48% 20%))";
+    d.textContent = g.name.charAt(0).toUpperCase();
+    return d;
+  }
+
+  // ---- Your own game files (kept in this browser) ----
+  var locals = [], DB = null;
+
+  // ---- Games built into this file ----
+  // Nothing is built in right now (this keeps the file small). All games load from their websites.
+  var BUNDLED = [];
+  var bundleText = {};
+  function bundledFor(v) {
+    v = String(v);
+    if (v.indexOf("bundled:") !== 0) return null;
+    for (var i = 0; i < BUNDLED.length; i++) if ("bundled:" + BUNDLED[i].id === v) return BUNDLED[i];
+    return null;
+  }
+  // The game's page text (local file or built-in), or null.
+  function inlineFor(v) {
+    var lp = localFor(v);
+    if (lp) return { name: lp.name, html: lp.html };
+    var b = bundledFor(v), el = b && document.getElementById("bundle-" + b.id);
+    if (!el) return null;
+    if (bundleText[b.id] == null) bundleText[b.id] = el.textContent.replace(/\uE000/g, "<");
+    return { name: b.name, html: bundleText[b.id] };
+  }
+
+  function allGames() {
+    return BUNDLED.map(function (r) { return { name: r.name, url: "bundled:" + r.id }; })
+      .concat(EXAMPLES, locals.map(function (r) { return { name: r.name, url: "local:" + r.id }; }));
+  }
+  function localFor(v) {
+    if (String(v).indexOf("local:") !== 0) return null;
+    for (var i = 0; i < locals.length; i++) if ("local:" + locals[i].id === v) return locals[i];
+    return null;
+  }
+  function loadLocals() {
+    try {
+      var rq = indexedDB.open("gameTabCloaker", 1);
+      rq.onupgradeneeded = function () { rq.result.createObjectStore("games", { keyPath: "id" }); };
+      rq.onsuccess = function () {
+        DB = rq.result;
+        var all = DB.transaction("games", "readonly").objectStore("games").getAll();
+        all.onsuccess = function () { locals = all.result || []; renderGames(); renderMine(); loadCovers(); };
+      };
+      rq.onerror = function () { DB = null; };
+    } catch (e) { DB = null; }
+  }
+  function saveLocal(rec) {
+    if (!DB) return;
+    try { DB.transaction("games", "readwrite").objectStore("games").put(rec); } catch (e) {}
+  }
+  function dropLocal(id) {
+    if (!DB) return;
+    try { DB.transaction("games", "readwrite").objectStore("games").delete(id); } catch (e) {}
+  }
+  function addFiles(files) {
+    var list = Array.prototype.slice.call(files), left = list.length;
+    function done() { if (--left === 0) { renderGames(); renderMine(); loadCovers(); } }
+    list.forEach(function (f) {
+      var rd = new FileReader();
+      rd.onload = function () {
+        var rec = {
+          id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+          name: f.name.replace(/\.html?$/i, "").replace(/[-_]+/g, " ").trim() || "Game",
+          html: String(rd.result)
+        };
+        locals.push(rec); saveLocal(rec); done();
+      };
+      rd.onerror = function () { $("msg").textContent = "Could not read " + f.name + "."; done(); };
+      rd.readAsText(f);
+    });
+    if (!DB) $("msg").textContent = "Added, but this browser will not keep the files after the page closes.";
+  }
+  function renderMine() {
+    var box = $("mine");
+    box.innerHTML = "";
+    if (!locals.length) {
+      var e = document.createElement("div");
+      e.className = "note"; e.textContent = "None yet.";
+      box.appendChild(e);
+      return;
+    }
+    locals.forEach(function (r) {
+      var row = document.createElement("div");
+      row.className = "mrow";
+      var n = document.createElement("span");
+      n.textContent = r.name;
+      var x = document.createElement("button");
+      x.type = "button"; x.className = "rmbtn"; x.textContent = "Remove";
+      x.onclick = function () {
+        if ($("target").value === "local:" + r.id) $("target").value = "";
+        locals.splice(locals.indexOf(r), 1);
+        dropLocal(r.id); renderGames(); renderMine();
+      };
+      row.appendChild(n); row.appendChild(x);
+      box.appendChild(row);
+    });
+  }
+  $("filePick").onchange = function () { if (this.files.length) addFiles(this.files); this.value = ""; };
+
+  // ---- Cover pictures (looked up by game name, remembered in this browser) ----
+  var COVERS_KEY = "gameTabCloakerNewNewNew.covers", covers = {}, tried = {}, queue = [], active = 0;
+  try { covers = JSON.parse(localStorage.getItem(COVERS_KEY) || "{}") || {}; } catch (e) { covers = {}; }
+  function saveCovers() { try { localStorage.setItem(COVERS_KEY, JSON.stringify(covers)); } catch (e) {} }
+  function norm(s) { return String(s).toLowerCase().replace(/[^a-z0-9]/g, ""); }
+  function wiki(q) {
+    var u = "https://en.wikipedia.org/w/api.php?action=query&format=json&formatversion=2&origin=*&generator=search&gsrlimit=5" +
+      "&prop=pageimages%7Cextracts&piprop=thumbnail&pithumbsize=400&exintro=1&explaintext=1&exchars=240&exlimit=max&gsrsearch=" +
+      encodeURIComponent(q);
+    return fetch(u).then(function (r) { return r.json(); }).then(function (j) { return (j.query && j.query.pages) || []; });
+  }
+  // Takes the best-ranked article that has a picture and is clearly about this game.
+  function pickCover(name, pages) {
+    var n = norm(name);
+    if (!n) return "";
+    pages.sort(function (a, b) { return a.index - b.index; });
+    for (var i = 0; i < pages.length; i++) {
+      var p = pages[i], t = norm(p.title);
+      if (!p.thumbnail) continue;
+      if (t.indexOf(n) > -1 || (t.length > 3 && n.indexOf(t) > -1)) return p.thumbnail.source;
+      if (i === 0 && /game/i.test(p.extract || "")) return p.thumbnail.source;
+    }
+    return "";
+  }
+  // App Store search (Apple's public search, loaded the way Apple documents for web pages)
+  function itunes(q) {
+    return new Promise(function (resolve, reject) {
+      var cb = "__itc" + Math.random().toString(36).slice(2), sc = document.createElement("script"), t;
+      function end() { clearTimeout(t); window[cb] = function () {}; if (sc.parentNode) sc.parentNode.removeChild(sc); }
+      window[cb] = function (j) { end(); resolve((j && j.results) || []); };
+      sc.onerror = function () { end(); reject(new Error("blocked")); };
+      t = setTimeout(function () { end(); reject(new Error("timeout")); }, 8000);
+      sc.src = "https://itunes.apple.com/search?entity=software&limit=5&country=us&term=" + encodeURIComponent(q) + "&callback=" + cb;
+      document.head.appendChild(sc);
+    });
+  }
+  function pickApp(name, apps) {
+    var n = norm(name);
+    if (!n) return "";
+    for (var i = 0; i < apps.length; i++) {
+      var t = norm(apps[i].trackName), u = apps[i].artworkUrl512 || apps[i].artworkUrl100;
+      if (u && (t.indexOf(n) > -1 || (t.length > 3 && n.indexOf(t) > -1))) return u;
+    }
+    var top = apps[0];
+    return (top && top.primaryGenreName === "Games" && (top.artworkUrl512 || top.artworkUrl100)) || "";
+  }
+  // App Store first, Wikipedia as the backup.
+  function findCover(name) {
+    return itunes(name + " game").then(function (apps) { return pickApp(name, apps); }).catch(function () { return ""; }).then(function (u) {
+      if (u) return u;
+      return wiki(name + " game").then(function (pg) {
+        return pickCover(name, pg) || wiki(name).then(function (pg2) { return pickCover(name, pg2); });
+      });
+    });
+  }
+  function coverImg(g, url, b) {
+    var art = document.createElement("img");
+    art.className = "art"; art.src = url; art.alt = ""; art.loading = "lazy"; art.referrerPolicy = "no-referrer";
+    art.onerror = function () {
+      if (covers[g.name] === url) { delete covers[g.name]; saveCovers(); }
+      if (art.parentNode === b) b.replaceChild(letterArt(g), art);
+      // Your own picture didn't load: drop it and look the cover up automatically instead.
+      if (g.img === url) { g.img = ""; loadCovers(); }
+    };
+    return art;
+  }
+  function applyCover(name, url) {
+    var kids = $("grid").children;
+    for (var i = 0; i < kids.length; i++) {
+      var b = kids[i], old = b.querySelector(".art");
+      if (b.getAttribute("data-n") !== name || !old || old.tagName === "IMG") continue;
+      b.replaceChild(coverImg({ name: name }, url, b), old);
+    }
+  }
+  function pump() {
+    while (active < 3 && queue.length) {
+      (function (g) {
+        active++;
+        findCover(g.name).catch(function () { return ""; }).then(function (u) {
+          active--;
+          if (u) { covers[g.name] = u; saveCovers(); applyCover(g.name, u); }
+          pump();
+        });
+      })(queue.shift());
+    }
+  }
+  function loadCovers() {
+    allGames().forEach(function (g) {
+      if (g.img || covers[g.name] || tried[g.name]) return;
+      tried[g.name] = true;
+      queue.push(g);
+    });
+    pump();
+  }
+
+  function renderGames() {
+    var q = $("search").value.trim().toLowerCase();
+    var grid = $("grid"), cur = $("target").value, shown = 0;
+    grid.innerHTML = "";
+    allGames().forEach(function (g) {
+      if (q && g.name.toLowerCase().indexOf(q) < 0) return;
+      shown++;
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "gcard" + (g.url === cur ? " sel" : "");
+      var src = g.img || covers[g.name];
+      b.setAttribute("data-n", g.name);
+      var art = src ? coverImg(g, src, b) : letterArt(g);
+      var n = document.createElement("span");
+      n.className = "gname"; n.textContent = g.name;
+      b.appendChild(art); b.appendChild(n);
+      b.onclick = function () {
+        // First click selects the game, a second click on the same card opens it.
+        if (b.classList.contains("sel")) { launch(); return; }
+        $("target").value = g.url;
+        var all = grid.children;
+        for (var i = 0; i < all.length; i++) all[i].classList.remove("sel");
+        b.classList.add("sel");
+        $("msg").textContent = "";
+      };
+      grid.appendChild(b);
+    });
+    var add = document.createElement("button");
+    add.type = "button"; add.className = "gcard add";
+    add.innerHTML = '<span class="plus">+</span><span>Add game file</span>';
+    add.onclick = function () { $("filePick").click(); };
+    grid.appendChild(add);
+    $("empty").style.display = shown ? "none" : "block";
+  }
+  $("search").addEventListener("input", renderGames);
+
+  // ---- News list ----
+  (function () {
+    var box = $("newsList");
+    NEWS.forEach(function (n) {
+      var item = document.createElement("div");
+      item.className = "nitem";
+      if (n.img) {
+        var im = document.createElement("img");
+        im.src = n.img; im.alt = ""; im.loading = "lazy";
+        im.onerror = function () { im.remove(); };
+        item.appendChild(im);
+      }
+      var h = document.createElement("h3");
+      h.textContent = n.title;
+      var p = document.createElement("p");
+      p.innerHTML = n.text;
+      item.appendChild(h); item.appendChild(p);
+      box.appendChild(item);
+    });
+  })();
+
+  // ---- Settings and help windows ----
+  var openOv = null, openFrom = null;
+  function showOv(ov, from) { openOv = ov; openFrom = from; ov.classList.add("open"); ov.firstElementChild.focus(); }
+  function hideOv() {
+    if (!openOv) return;
+    openOv.classList.remove("open");
+    var f = openFrom; openOv = null; openFrom = null;
+    if (f) f.focus();
+  }
+  $("gear").onclick = function () { showOv($("overlay"), this); };
+  $("book").onclick = function () { showOv($("helpOverlay"), this); };
+  $("news").onclick = function () { showOv($("newsOverlay"), this); };
+  $("sclose").onclick = hideOv;
+  $("hclose").onclick = hideOv;
+  $("nclose").onclick = hideOv;
+  [$("overlay"), $("helpOverlay"), $("newsOverlay")].forEach(function (ov) {
+    ov.addEventListener("click", function (e) { if (e.target === ov) hideOv(); });
+  });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") hideOv(); });
+
+  // ---- Light / dark ----
+  var THEME_KEY = "gameTabCloaker.theme";
+  function setTheme(t, save) {
+    document.documentElement.setAttribute("data-theme", t);
+    $("themeDark").setAttribute("aria-pressed", String(t === "dark"));
+    $("themeLight").setAttribute("aria-pressed", String(t === "light"));
+    if (save) { try { localStorage.setItem(THEME_KEY, t); } catch (e) {} }
+  }
+  $("themeDark").onclick = function () { setTheme("dark", true); };
+  $("themeLight").onclick = function () { setTheme("light", true); };
+  var startTheme = "light";
+  try { if (localStorage.getItem(THEME_KEY) === "light") startTheme = "light"; } catch (e) {}
+  setTheme(startTheme, false);
+
+  function refreshPreview() {
+    var c = normalizeSite($("cloak").value);
+    if (!c) { $("ptitle").textContent = "—"; $("pfav").removeAttribute("src"); return; }
+    $("ptitle").textContent = $("title").value.trim() || defaultTitle(c);
+    $("pfav").src = favicon(c);
+  }
+  // The disguise is picked at random on load and again each time a game opens,
+  // unless you choose or type one yourself (then yours is kept).
+  var manualDisguise = false;
+  function pickRandomDisguise() {
+    var p = PRESETS[Math.floor(Math.random() * PRESETS.length)];
+    $("cloak").value = p.url;
+    $("title").value = p.title;
+    refreshPreview();
+  }
+  PRESETS.forEach(function (p) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "chip"; b.textContent = p.name;
+    b.onclick = function () { manualDisguise = true; $("cloak").value = p.url; $("title").value = p.title; refreshPreview(); };
+    $("chips").appendChild(b);
+  });
+  $("cloak").addEventListener("input", function () { manualDisguise = true; refreshPreview(); });
+  $("title").addEventListener("input", function () { manualDisguise = true; refreshPreview(); });
+  renderMine();
+  loadLocals();
+  loadCovers();
+
+  // hook(): runs INSIDE the game, before any of the game's own scripts.
+  function hook(opts) {
+    var n = 0, MAX = 400;
+    var root = (opts && opts.root) || "";
+    var targetUrl = (opts && opts.target) || document.baseURI;
+    var pending = {};
+
+    try { void document.cookie; } catch (e) {
+      var _ck = "";
+      try {
+        Object.defineProperty(document, "cookie", {
+          configurable: true,
+          get: function () { return _ck; },
+          set: function (v) { _ck = String(v); }
+        });
+      } catch (e2) {}
+    }
+    ["localStorage", "sessionStorage"].forEach(function (sName) {
+      try {
+        window[sName].setItem("__test", "1");
+        window[sName].removeItem("__test");
+      } catch (e) {
+        var _mem = {};
+        var stub = {
+          getItem: function (k) { return Object.prototype.hasOwnProperty.call(_mem, k) ? _mem[k] : null; },
+          setItem: function (k, v) { _mem[k] = String(v); },
+          removeItem: function (k) { delete _mem[k]; },
+          clear: function () { _mem = {}; },
+          key: function (i) { return Object.keys(_mem)[i] || null; },
+          get length() { return Object.keys(_mem).length; }
+        };
+        try { Object.defineProperty(window, sName, { configurable: true, value: stub }); } catch (e2) {}
+      }
+    });
+
+    try {
+      var origReplace = history.replaceState.bind(history);
+      var origPush = history.pushState.bind(history);
+      history.replaceState = function (s, t, u) { try { return origReplace(s, t, u); } catch (e) {} };
+      history.pushState = function (s, t, u) { try { return origPush(s, t, u); } catch (e) {} };
+    } catch (e) {}
+
+    try { window.__cloakedLocation = new URL(targetUrl); } catch (e) {}
+
+    // Unity: its loader resolves URLs against document.URL, which is "about:srcdoc" in here
+    try {
+      if (!/^https?:/i.test(document.URL)) {
+        var pageUrl = String(targetUrl);
+        ["URL", "documentURI"].forEach(function (k) {
+          Object.defineProperty(Document.prototype, k, { configurable: true, get: function () { return pageUrl; } });
+        });
+      }
+    } catch (e) {}
+
+    function send(l, t, u) {
+      if (n > MAX) return;
+      if (n === MAX) { l = "warn"; t = "(too many messages; further ones are hidden)"; u = ""; }
+      n++;
+      try { parent.postMessage({ cloakLog: { l: l, t: String(t).slice(0, 400), u: u || "" } }, "*"); } catch (e) {}
+    }
+    function fix(u) {
+      return (root && typeof u === "string" && u.charAt(0) === "/" && u.charAt(1) !== "/") ? root + u : u;
+    }
+    function abs(u) {
+      try { return new URL(u, document.baseURI).href; } catch (e) { return String(u); }
+    }
+    function askParent(url) {
+      return new Promise(function (res, rej) {
+        var id = Math.random().toString(36).slice(2);
+        pending[id] = { res: res, rej: rej };
+        parent.postMessage({ cloakReq: { id: id, url: url } }, "*");
+      });
+    }
+    var bad = {};
+    ((opts && opts.bad) || []).forEach(function (h) { bad[h] = true; });
+    function hostOf(u) {
+      try { return new URL(u, document.baseURI).hostname; } catch (e) { return ""; }
+    }
+    function mime(u, t) { return /\.wasm(?:\.gz)?(?:[?#]|$)/i.test(u) ? "application/wasm" : (t || ""); }
+    window.addEventListener("message", function (e) {
+      if (e.source !== parent || !e.data) return;
+      if (e.data.cloakBad) { bad[e.data.cloakBad] = true; return; }
+      var d = e.data.cloakRes;
+      if (!d) return;
+      var p = pending[d.id];
+      if (!p) return;
+      delete pending[d.id];
+      if (d.error) p.rej(new TypeError("Failed to fetch")); else p.res(d);
+    });
+    function recoverScript(el, url) {
+      el.__cloaked = true;
+      askParent(url).then(function (d) {
+        var s = document.createElement("script");
+        var type = el.getAttribute("type");
+        if (type) s.setAttribute("type", type);
+        for (var ai = 0; ai < el.attributes.length; ai++) {
+          var an = el.attributes[ai].name;
+          if (/^data-/i.test(an)) s.setAttribute(an, el.attributes[ai].value);
+        }
+        s.textContent = new TextDecoder().decode(d.body);
+        (document.head || document.documentElement).appendChild(s);
+        if (s.parentNode) s.parentNode.removeChild(s);
+        send("info", "Recovered script: " + url, "");
+        el.dispatchEvent(new Event("load"));
+      }, function () {
+        send("error", "Could not recover script: " + url, "");
+        el.dispatchEvent(new Event("error"));
+      });
+    }
+    function str(args) {
+      try {
+        return Array.prototype.map.call(args, function (x) {
+          if (x instanceof Error) return x.stack || x.message;
+          if (x && typeof x === "object") { try { return JSON.stringify(x); } catch (e) { return String(x); } }
+          return String(x);
+        }).join(" ");
+      } catch (e) { return "[unprintable]"; }
+    }
+
+    ["log", "info", "warn", "error", "debug"].forEach(function (k) {
+      var orig = console[k];
+      console[k] = function () {
+        send(k === "debug" ? "log" : k, str(arguments));
+        if (orig) return orig.apply(console, arguments);
+      };
+    });
+
+    window.addEventListener("error", function (e) {
+      var t = e.target;
+      if (t && t !== window && (t.src || t.href)) {
+        var fu = t.src || t.href;
+        send("error", "Failed to download <" + String(t.tagName).toLowerCase() + "> " + fu, fu);
+        if (t.tagName === "SCRIPT" && t.src && !t.__cloaked) recoverScript(t, t.src);
+        return;
+      }
+      var where = e.filename ? " (" + String(e.filename).split("/").pop() + ":" + e.lineno + ":" + e.colno + ")" : "";
+      var m = e.message === "Script error."
+        ? "Script error (the browser hides the details for scripts from another site)"
+        : "Script error: " + e.message + (e.error != null ? " | thrown: " + (function (d) { try { return d.stack || d.name || JSON.stringify(d); } catch (x) { return String(d); } })(e.error) : " | nothing was attached to the error");
+      send("error", m + where);
+    }, true);
+
+    window.addEventListener("unhandledrejection", function (e) {
+      var r = e.reason;
+      send("error", "Unhandled promise rejection: " + ((r && (r.stack || r.message)) || r));
+    });
+    window.addEventListener("securitypolicyviolation", function (e) {
+      send("error", "Blocked by the page's security policy: " + e.violatedDirective + " " + e.blockedURI);
+    });
+
+    var of = window.fetch;
+    if (of) {
+      window.fetch = function (input, init) {
+        var a = arguments;
+        var raw = typeof input === "string" ? input : ((input && (input.url || input.href)) || "");
+        var fixed = fix(raw);
+        var bm = typeof fixed === "string" && fixed.match(/\/(blob:https?:\/\/.+)$/);
+        if (bm) fixed = bm[1];
+        if (typeof input === "string") a = [fixed].concat(Array.prototype.slice.call(arguments, 1));
+        var url = abs(fixed);
+        var method = ((init && init.method) || (input && input.method) || "GET").toUpperCase();
+        if (method === "GET" && bad[hostOf(url)]) {
+          return askParent(url).then(function (d) {
+            send("info", "Recovered: " + url, "");
+            var resp = new Response(d.body, { status: 200, statusText: "OK", headers: { "content-type": mime(url, d.type), "content-length": String(d.body.byteLength) } });
+            try { Object.defineProperty(resp, "url", { value: url }); } catch (e) {}
+            return resp;
+          }, function () { return Promise.reject(new TypeError("Failed to fetch")); });
+        }
+        return of.apply(this, a).then(function (r) {
+          var cl = +r.headers.get("content-length");
+          if (!r.ok && method === "GET" && (r.status === 403 || r.status === 429)) {
+            send("warn", "HTTP " + r.status + " for " + url + ", trying other routes", "");
+            return askParent(url).then(function (d) {
+              send("info", "Recovered: " + url, "");
+              var resp = new Response(d.body, { status: 200, statusText: "OK", headers: { "content-type": mime(url, d.type), "content-length": String(d.body.byteLength) } });
+              try { Object.defineProperty(resp, "url", { value: url }); } catch (e) {}
+              return resp;
+            }, function () { return r; });
+          }
+          if (!r.ok || method !== "GET" || cl >= 2000 || !r.body || !r.body.getReader) return r;
+          var rd = r.clone().body.getReader();
+          return rd.read().then(function (c) {
+            try { rd.cancel(); } catch (e) {}
+            var t = c.value ? new TextDecoder().decode(c.value.subarray(0, 120)) : "";
+            if (!/^\s*\d{3}: /.test(t)) return r;
+            send("warn", "Got an error message instead of the file (" + t.slice(0, 50).replace(/\s+/g, " ") + "): " + url, "");
+            return askParent(url).then(function (d) {
+              send("info", "Recovered: " + url, "");
+              var resp = new Response(d.body, { status: 200, statusText: "OK", headers: { "content-type": mime(url, d.type), "content-length": String(d.body.byteLength) } });
+              try { Object.defineProperty(resp, "url", { value: url }); } catch (e) {}
+              return resp;
+            }, function () { return r; });
+          }, function () { return r; });
+        }).then(function (r) {
+          if (!r.ok) send("error", "Download failed: HTTP " + r.status + " " + url, "");
+          else if (/\.(unityweb|data|wasm|br|gz)(?:[?#]|$)/i.test(url)) {
+            r.clone().arrayBuffer().then(function (b) {
+              if (b.byteLength < 2000) send("warn", "Tiny file (" + b.byteLength + " bytes) from " + url + ": " + new TextDecoder().decode(b).slice(0, 200), "");
+            }, function () {});
+          }
+          return r;
+        }, function (err) {
+          send("error", "Download failed: " + url + " (" + ((err && err.message) || err) + ")", url);
+          if (method !== "GET") throw err;
+          return askParent(url).then(function (d) {
+            send("info", "Recovered: " + url, "");
+            var resp = new Response(d.body, {
+              status: 200,
+              statusText: "OK",
+              headers: {
+                "content-type": mime(url, d.type),
+                "content-length": String(d.body.byteLength)
+              }
+            });
+            try { Object.defineProperty(resp, "url", { value: url }); } catch (e) {}
+            return resp;
+          }, function () { throw err; });
+        });
+      };
+    }
+
+    function emulateXhr(x, url) {
+      var state = 1, status = 0, resp = null, text = "", ctype = "";
+      function def(name, get) {
+        try { Object.defineProperty(x, name, { configurable: true, get: get }); } catch (e) {}
+      }
+      def("readyState", function () { return state; });
+      def("status", function () { return status; });
+      def("statusText", function () { return status === 200 ? "OK" : ""; });
+      def("response", function () { return resp; });
+      def("responseText", function () { return text; });
+      def("responseURL", function () { return status ? url : ""; });
+      x.getResponseHeader = function (k) {
+        k = String(k).toLowerCase();
+        if (k === "content-type") return ctype || null;
+        if (k === "content-length" && resp && resp.byteLength != null) return String(resp.byteLength);
+        return null;
+      };
+      x.getAllResponseHeaders = function () { return ctype ? "content-type: " + ctype + "\r\n" : ""; };
+      function fire(type, loaded, total) {
+        var ev;
+        try { ev = new ProgressEvent(type, { lengthComputable: !!total, loaded: loaded || 0, total: total || 0 }); }
+        catch (e) { ev = new Event(type); }
+        try { x.dispatchEvent(ev); } catch (e) {}
+      }
+      fire("loadstart", 0, 0);
+      askParent(url).then(function (d) {
+        var len = d.body.byteLength;
+        ctype = d.type || "";
+        status = 200;
+        var rt = x.responseType;
+        if (rt === "arraybuffer") resp = d.body;
+        else if (rt === "blob") resp = new Blob([d.body], { type: ctype });
+        else {
+          text = new TextDecoder().decode(d.body);
+          resp = text;
+          if (rt === "json") { try { resp = JSON.parse(text); } catch (e) { resp = null; } }
+        }
+        send("info", "Recovered: " + url, "");
+        state = 2; fire("readystatechange");
+        state = 3; fire("readystatechange"); fire("progress", len, len);
+        state = 4; fire("readystatechange"); fire("load", len, len); fire("loadend", len, len);
+      }, function () {
+        send("error", "Could not recover: " + url, "");
+        state = 4; status = 0;
+        fire("readystatechange"); fire("error", 0, 0); fire("loadend", 0, 0);
+      });
+    }
+
+    var oo = XMLHttpRequest.prototype.open, os = XMLHttpRequest.prototype.send;
+    XMLHttpRequest.prototype.open = function (m, u) {
+      var a = Array.prototype.slice.call(arguments);
+      var bm = typeof u === "string" && fix(u).match(/\/(blob:https?:\/\/.+)$/);
+      a[1] = bm ? bm[1] : fix(u);
+      this.__u = abs(a[1]);
+      this.__m = String(m || "GET").toUpperCase();
+      return oo.apply(this, a);
+    };
+    XMLHttpRequest.prototype.send = function () {
+      var x = this;
+      if (x.__u && x.__m === "GET" && bad[hostOf(x.__u)]) { emulateXhr(x, x.__u); return; }
+      x.addEventListener("loadend", function () {
+        if (x.status === 0 || x.status >= 400) {
+          send("error", "Download failed: " + (x.status ? "HTTP " + x.status : "no response") + " " + x.__u,
+               x.status ? "" : x.__u);
+        }
+      });
+      return os.apply(this, arguments);
+    };
+
+    if (root) {
+      var sa = Element.prototype.setAttribute;
+      Element.prototype.setAttribute = function (name, value) {
+        if (name === "src" || name === "href" || name === "poster") value = fix(value);
+        return sa.call(this, name, value);
+      };
+      [["HTMLScriptElement", "src"], ["HTMLImageElement", "src"], ["HTMLLinkElement", "href"],
+       ["HTMLMediaElement", "src"], ["HTMLSourceElement", "src"]].forEach(function (p) {
+        var C = window[p[0]];
+        var d = C && Object.getOwnPropertyDescriptor(C.prototype, p[1]);
+        if (d && d.set) {
+          Object.defineProperty(C.prototype, p[1], {
+            configurable: true, enumerable: d.enumerable, get: d.get,
+            set: function (v) { d.set.call(this, fix(v)); }
+          });
+        }
+      });
+    }
+
+    function intercept(node) {
+      if (node && node.tagName === "SCRIPT" && !node.__cloaked && node.getAttribute("src")) {
+        var u = abs(node.getAttribute("src"));
+        if (bad[hostOf(u)]) { recoverScript(node, u); return true; }
+      }
+      return false;
+    }
+    var appendOrig = Node.prototype.appendChild, insertOrig = Node.prototype.insertBefore;
+    Node.prototype.appendChild = function (n) { return intercept(n) ? n : appendOrig.call(this, n); };
+    Node.prototype.insertBefore = function (n, ref) { return intercept(n) ? n : insertOrig.call(this, n, ref); };
+
+    // Workers: a page can't start a Worker from a file on another website, so start it through a small local copy that loads the original.
+    var OW = window.Worker;
+    if (OW) {
+      var W = function (u, o) {
+        var full = abs(String(u)), cross = false;
+        try { cross = /^https?:/i.test(full) && new URL(full).origin !== window.origin; } catch (e) {}
+        if (!cross) return new OW(u, o);
+        var B = full.slice(0, full.lastIndexOf("/") + 1);
+        var code = (o && o.type === "module")
+          ? "import " + JSON.stringify(full) + ";"
+          : "(function(){var B=" + JSON.stringify(B) + ",R=function(u){return /^[a-z]+:/i.test(u)?u:new URL(u,B).href},f=self.fetch,I=self.importScripts;" +
+            "self.fetch=function(i,n){return f.call(self,typeof i==='string'?R(i):i,n)};" +
+            "self.importScripts=function(){return I.apply(self,[].map.call(arguments,R))};})();importScripts(" + JSON.stringify(full) + ");";
+        send("info", "Starting a Worker through a local copy: " + full, "");
+        var w = new OW(URL.createObjectURL(new Blob([code], { type: "text/javascript" })), o);
+        w.addEventListener("error", function (e) { send("error", "Worker error: " + (e.message || "no details") + " (" + full + ")", ""); });
+        return w;
+      };
+      W.prototype = OW.prototype;
+      window.Worker = W;
+    }
+    // Flash games (Ruffle): log what the page hands to load(). If it hands over nothing, fall back to a Flash file address found in the page.
+    try {
+      var cdef = window.customElements && customElements.define;
+      if (cdef) {
+        customElements.define = function (name, ctor, o) {
+          try {
+            if (/^ruffle-player/i.test(name) && ctor && ctor.prototype && typeof ctor.prototype.load === "function" && !ctor.prototype.load.__cloaked) {
+              var origLoad = ctor.prototype.load;
+              var wrapped = function (opts) {
+                var kind = opts === undefined ? "undefined" : opts === null ? "null" : typeof opts;
+                var shown = typeof opts === "string" ? opts : (opts && typeof opts === "object" && opts.url) ? String(opts.url) : "";
+                send("info", "Ruffle load() called with " + kind + (shown ? ": " + shown : ""), "");
+                var empty = opts == null || opts === "" || (typeof opts === "object" && !opts.url && !opts.data);
+                if (empty) {
+                  try {
+                    // Show the game's own code that made this call, so the cause can be read straight from the console.
+                    var stk = String(new Error().stack || ""), pos = [], re2 = /srcdoc:(\d+):(\d+)/g, mm;
+                    while ((mm = re2.exec(stk))) pos.push([+mm[1], +mm[2]]);
+                    var fe = window.frameElement, srcText = fe && fe.getAttribute("srcdoc");
+                    if (srcText && pos.length > 1) {
+                      var all = srcText.split("\n"), at = pos[1][0], from = Math.max(1, at - 18), li;
+                      send("warn", "Code that called load() (line " + at + ", col " + pos[1][1] + "), with the lines before it:", "");
+                      for (li = from; li <= at; li++) {
+                        var tx = (all[li - 1] || "").replace(/\s+$/, "");
+                        if (tx) send("warn", "  " + li + ": " + tx.slice(0, 260), "");
+                      }
+                      // Where does the variable that load() was given ("file") get its value?
+                      var fre = /(?:^|[^\w$.])(?:(?:var|let|const)\s+)?file\s*=(?!=)|(?:var|let|const)\s+file\b|window\.file\b|[,{]\s*file\s*[:,}]/, hits = 0;
+                      send("warn", "Lines in the page that set or declare \"file\":", "");
+                      for (li = 1; li <= all.length && hits < 10; li++) {
+                        var fm = fre.exec(all[li - 1]);
+                        if (fm) { hits++; send("warn", "  " + li + ": " + all[li - 1].slice(Math.max(0, fm.index - 80), fm.index + 200).replace(/\s+/g, " "), ""); }
+                      }
+                      if (!hits) send("warn", "  none found in the page text (it may be set by a script that is loaded later)", "");
+                    }
+                    var ks = [], k;
+                    for (k in window) { if (/swf|flash|rom|gamefile|gamepath|gameurl|gameconfig/i.test(k)) { try { ks.push(k + "=" + String(window[k]).slice(0, 80)); } catch (e3) {} } }
+                    send("info", "Page variables that may name the game file: " + (ks.slice(0, 10).join("; ") || "none found"), "");
+                  } catch (e2) {}
+                  var m = document.documentElement.innerHTML.match(new RegExp("[\"'(=]\\s*([^\"'()\\s<>]+\\." + "swf(?:\\?[^\"'()\\s<>]*)?)", "i"));
+                  if (m) {
+                    var swfUrl = abs(m[1]);
+                    send("warn", "Ruffle was given no file; using the Flash file address found in the page: " + swfUrl, "");
+                    opts = (opts && typeof opts === "object") ? Object.assign({}, opts, { url: swfUrl }) : swfUrl;
+                  } else {
+                    send("error", "Ruffle was given no file, and no Flash file address was found in the page", "");
+                  }
+                }
+                return origLoad.apply(this, [opts].concat(Array.prototype.slice.call(arguments, 1)));
+              };
+              wrapped.__cloaked = true;
+              ctor.prototype.load = wrapped;
+            }
+          } catch (e) {}
+          return cdef.call(customElements, name, ctor, o);
+        };
+      }
+    } catch (e) {}
+
+    // Lists any iframes / Flash players the page contains, so you can tell if a game is just a frame around another address.
+    function report() {
+      try {
+        var els = document.querySelectorAll("iframe,embed,object,ruffle-player,ruffle-embed,ruffle-object"), parts = [], i;
+        for (i = 0; i < els.length && i < 8; i++) {
+          var el = els[i], src = el.getAttribute("src") || el.getAttribute("data") || "";
+          parts.push(el.tagName.toLowerCase() + (src ? " " + abs(src) : "") + " (" + el.clientWidth + "x" + el.clientHeight + ")");
+        }
+        send("info", parts.length ? "Embedded players in the page: " + parts.join("; ") : "No iframe, embed or Flash player elements in the page right now", "");
+      } catch (e) {}
+    }
+    document.addEventListener("DOMContentLoaded", function () { send("info", "Page scripts have run (DOMContentLoaded)"); report(); });
+    window.addEventListener("load", function () {
+      send("info", "All files finished loading (load event)");
+      report();
+      setTimeout(report, 3000);
+    });
+  }
+
+  // runner(): runs in the cloaked tab and loads the game
+  function runner(cfg) {
+    var f = document.getElementById("f");
+    var s = document.getElementById("s");
+    var errs = [];
+    var T0 = Date.now();
+    var loaded = false;
+
+    var cp = document.getElementById("cp"), cw = document.getElementById("cw"), cl = document.getElementById("cl");
+    var nErr = 0, nWarn = 0, last = null;
+
+    function summary() {
+      var parts = [];
+      if (nErr) parts.push(nErr + " error" + (nErr > 1 ? "s" : ""));
+      if (nWarn) parts.push(nWarn + " warning" + (nWarn > 1 ? "s" : ""));
+      cp.textContent = "console" + (parts.length ? " \u00b7 " + parts.join(", ") : "");
+      cp.className = nErr ? "bad" : "";
+    }
+    function log(level, text) {
+      if (!cl) return;
+      if (last && last.level === level && last.text === text) {
+        last.count++;
+        if (!last.n) { last.n = document.createElement("span"); last.n.className = "n"; last.el.appendChild(last.n); }
+        last.n.textContent = "\u00d7" + last.count;
+        return;
+      }
+      var el = document.createElement("div");
+      el.className = level;
+      var t = document.createElement("span");
+      t.className = "t";
+      t.textContent = "+" + ((Date.now() - T0) / 1000).toFixed(1) + "s";
+      el.appendChild(t);
+      el.appendChild(document.createTextNode(text));
+      var atBottom = cl.scrollTop + cl.clientHeight >= cl.scrollHeight - 20;
+      cl.appendChild(el);
+      while (cl.childNodes.length > 400) cl.removeChild(cl.firstChild);
+      if (atBottom) cl.scrollTop = cl.scrollHeight;
+      last = { level: level, text: text, el: el, count: 1, n: null };
+      if (level === "error") nErr++; else if (level === "warn") nWarn++;
+      summary();
+    }
+    function openPanel() { if (cw) { cw.style.display = "flex"; cl.scrollTop = cl.scrollHeight; } }
+
+    if (cp) {
+      cp.onclick = function () { cw.style.display = cw.style.display === "flex" ? "none" : "flex"; if (cw.style.display === "flex") cl.scrollTop = cl.scrollHeight; };
+      document.getElementById("cx").onclick = function () { cw.style.display = "none"; };
+      document.getElementById("cc").onclick = function () { cl.innerHTML = ""; nErr = 0; nWarn = 0; last = null; summary(); };
+      document.getElementById("cf").onclick = function () {
+        var on = cw.className === "po";
+        cw.className = on ? "" : "po";
+        this.textContent = on ? "Problems only" : "Show all";
+      };
+      var cy = document.getElementById("cy");
+      cy.onclick = function () {
+        var txt = Array.prototype.map.call(cl.childNodes, function (n) { return n.textContent; }).join("\n");
+        function fallback() {
+          var ta = document.createElement("textarea");
+          ta.value = txt;
+          ta.style.cssText = "position:fixed;opacity:0";
+          document.body.appendChild(ta);
+          ta.select();
+          try { document.execCommand("copy"); } catch (e) {}
+          document.body.removeChild(ta);
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).catch(fallback);
+        else fallback();
+        cy.textContent = "Copied";
+        setTimeout(function () { cy.textContent = "Copy"; }, 1200);
+      };
+    }
+
+    var probed = {}, probeCount = 0;
+    function probe(u) {
+      if (!/^https?:/i.test(u) || probed[u] || probeCount >= 6) return;
+      probed[u] = true;
+      probeCount++;
+      fetch(u, { method: "HEAD", credentials: "omit" }).then(function (r) {
+        log(r.ok ? "info" : "error", "Check: " + u + " \u2192 HTTP " + r.status + " (this page can read it)");
+      }, function () {
+        fetch(u, { method: "HEAD", mode: "no-cors", credentials: "omit" }).then(function () {
+          log("error", "Check: " + u + " is reachable, but the server doesn't allow this page to read it (CORS)");
+        }, function () {
+          log("error", "Check: " + u + " could not be reached at all (network error, blocked, or missing)");
+          markBad(u);
+        });
+      });
+    }
+
+    var pageBase = "";
+    var goodLabel = "";
+    var badHosts = {};
+
+    function hostOf(u) {
+      try { return new URL(u).hostname; } catch (e) { return ""; }
+    }
+    function markBad(u) {
+      var h = hostOf(u);
+      if (!h || badHosts[h]) return;
+      badHosts[h] = true;
+      log("warn", h + " can't be reached from this browser, so files from it will be fetched another way");
+      try { f.contentWindow.postMessage({ cloakBad: h }, "*"); } catch (e) {}
+    }
+
+    // Unity: unpack .gz files that arrive still compressed
+    function unzip(buf, url) {
+      var b = new Uint8Array(buf);
+      if (!/\.gz(?:[?#]|$)/i.test(url) || b[0] !== 0x1f || b[1] !== 0x8b || typeof DecompressionStream === "undefined") return Promise.resolve(buf);
+      log("info", "Unpacking gzip: " + url);
+      return new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream("gzip"))).arrayBuffer().catch(function () { return buf; });
+    }
+
+    function candidatesFor(u) {
+      var list = badHosts[hostOf(u)] ? [] : [{ label: "original", url: u }];
+      if (pageBase && u.indexOf(pageBase) === 0) {
+        try { list.push({ label: "site folder", url: new URL(".", cfg.target).href + u.slice(pageBase.length) }); } catch (e) {}
+      }
+      var m = u.match(/^https:\/\/cdn\.jsdelivr\.net\/gh\/([^\/]+)\/([^\/@]+)@([^\/]+)\/(.+)$/);
+      if (m) {
+        list.push({ label: "GitHub raw", url: "https://raw.githubusercontent.com/" + m[1] + "/" + m[2] + "/" + m[3] + "/" + m[4] });
+        ["fastly", "gcore", "testingcf"].forEach(function (h) {
+          list.push({ label: h + ".jsdelivr", url: "https://" + h + ".jsdelivr.net/gh/" + m[1] + "/" + m[2] + "@" + m[3] + "/" + m[4] });
+        });
+        list.push({ label: "statically", url: "https://cdn.statically.io/gh/" + m[1] + "/" + m[2] + "/" + m[3] + "/" + m[4] });
+      }
+      cfg.proxies.forEach(function (p, i) {
+        list.push({ label: "proxy " + (i + 1), url: p.replace("{url}", encodeURIComponent(u)) });
+      });
+      if (!list.length) list.push({ label: "original", url: u });
+      if (goodLabel) {
+        for (var i = 0; i < list.length; i++) {
+          if (list[i].label === goodLabel) { list.unshift(list.splice(i, 1)[0]); break; }
+        }
+      }
+      return list;
+    }
+
+    function raceFetch(cands) {
+      return new Promise(function (resolve, reject) {
+        var done = false, finished = 0, acs = [], errs = [];
+        function fail(label, e) {
+          errs.push(label + ": " + (e && e.name === "AbortError" ? "no answer in 15 s" : ((e && e.message) || "blocked")));
+          finished++;
+          if (!done && finished === cands.length) reject(new Error(errs.join("; ")));
+        }
+        cands.forEach(function (c, i) {
+          var ac = new AbortController();
+          acs.push(ac);
+          setTimeout(function () {
+            if (done) { finished++; return; }
+            var t = setTimeout(function () { ac.abort(); }, 15000);
+            fetch(c.url, { credentials: "omit", redirect: "follow", signal: ac.signal }).then(function (r) {
+              var cl = +r.headers.get("content-length");
+              if (!r.ok || !(cl > 0 && cl < 2000)) return r;
+              return r.clone().text().then(function (tx) {
+                if (/^\s*\d{3}: /.test(tx)) throw new Error(tx.slice(0, 40).replace(/\s+/g, " "));
+                return r;
+              });
+            }).then(function (r) {
+              clearTimeout(t);
+              if (!r.ok) throw new Error("HTTP " + r.status);
+              if (done) { try { ac.abort(); } catch (e) {} finished++; return; }
+              done = true;
+              acs.forEach(function (a, j) { if (j !== i) { try { a.abort(); } catch (e) {} } });
+              return r.arrayBuffer().then(function (b) {
+                resolve({ body: b, type: r.headers.get("content-type") || "", via: c.label });
+              });
+            }).catch(function (e) { clearTimeout(t); if (!done) fail(c.label, e); });
+          }, i * 1500);
+        });
+      });
+    }
+
+    window.addEventListener("message", function (e) {
+      if (e.source !== f.contentWindow || !e.data) return;
+      var d = e.data.cloakLog, q = e.data.cloakReq;
+      if (d) { log(d.l, d.t); if (d.u) probe(d.u); return; }
+      if (q) {
+        log("info", "Retrying a failed download: " + q.url);
+        raceFetch(candidatesFor(q.url)).then(function (r) {
+          goodLabel = r.via;
+          if (r.via !== "original") markBad(q.url);
+          log("info", "Retry worked via " + r.via + ": " + q.url + " (" + Math.max(1, Math.round(r.body.byteLength / 1024)) + " KB)");
+          return unzip(r.body, q.url).then(function (body) {
+            f.contentWindow.postMessage({ cloakRes: { id: q.id, body: body, type: r.type } }, "*");
+          });
+        }).catch(function (err) {
+          log("error", "Retry failed: " + q.url + " (" + ((err && err.message) || "blocked") + ")");
+          f.contentWindow.postMessage({ cloakRes: { id: q.id, error: true } }, "*");
+        });
+      }
+    });
+
+    function msg(t) { s.textContent = t; s.style.display = t ? "flex" : "none"; }
+    function focusGame() { try { f.focus(); } catch (e) {} }
+    function attr(v) { return String(v).replace(/&/g, "&amp;").replace(/"/g, "&quot;"); }
+
+    f.addEventListener("load", function () {
+      if (!f.getAttribute("srcdoc")) return;
+      loaded = true;
+      msg("");
+      focusGame();
+      log("info", "The frame finished loading");
+    });
+    window.addEventListener("focus", focusGame);
+    document.addEventListener("click", focusGame);
+
+    if (cfg.confirmClose) {
+      window.addEventListener("beforeunload", function (e) {
+        e.preventDefault();
+        e.returnValue = "";
+        return "";
+      });
+    }
+
+    function tryFetch(u, label) {
+      log("info", "Fetching the game page (" + label + ")\u2026");
+      var ac = new AbortController();
+      var t = setTimeout(function () { ac.abort(); }, 20000);
+      return fetch(u, { signal: ac.signal, redirect: "follow", credentials: "omit" }).then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.text().then(function (text) {
+          clearTimeout(t);
+          log("info", label + ": OK, " + Math.max(1, Math.round(text.length / 1024)) + " KB received");
+          return { text: text, url: r.url || u };
+        });
+      }).catch(function (e) {
+        clearTimeout(t);
+        var why = e && e.name === "AbortError" ? "timed out after 20 s" : ((e && e.message) || "blocked");
+        errs.push(label + ": " + why);
+        log("error", label + ": failed (" + why + ")");
+        throw e;
+      });
+    }
+
+    // Make the HTML ready to run: files are looked up relative to the game's own address.
+    function prep(html, pageUrl) {
+      var baseHref = pageUrl;
+      var tagBase = "";
+      var m = html.match(/<base\b[^>]*\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i);
+      if (m) {
+        tagBase = m[1] || m[2] || m[3];
+        try { baseHref = new URL(tagBase, pageUrl).href; } catch (e) {}
+      }
+      html = html.replace(/<base\b[^>]*>/gi, "");
+      html = html.replace(/<meta[^>]+http-equiv=["']?content-security-policy["']?[^>]*>/gi, "");
+
+      var site = "";
+      try { site = new URL(cfg.target).origin; } catch (e) {}
+      var root = "";
+      try { if (site && new URL(baseHref).origin !== site) root = site; } catch (e) {}
+      if (root) {
+        html = html.replace(/(\b(?:src|href|poster|data-src)\s*=\s*)(["'])\/(?!\/)/gi, function (mm, pre, q) {
+          return pre + q + root + "/";
+        });
+      }
+
+      // Point inline window.location / document.location at __cloakedLocation so games checking their domain don't crash
+      html = html.replace(/<script\b(?![^>]*\bsrc\b)[^>]*>([\s\S]*?)<\/script>/gi, function (full, code) {
+        var patched = code.replace(/\b(window|document)\.location\b/g, "window.__cloakedLocation");
+        return full.replace(code, function () { return patched; });
+      });
+
+      var tag = '<base href="' + attr(baseHref) + '">';
+      if (cfg.hookSource) {
+        tag += '<script>(' + cfg.hookSource + ')(' + JSON.stringify({ root: root, target: pageUrl }).replace(/</g, "\\u003c") + ');<\/script>';
+      }
+      html = /<head[^>]*>/i.test(html)
+        ? html.replace(/<head[^>]*>/i, function (mm) { return mm + tag; })
+        : tag + html;
+      return { html: html, base: baseHref, tagBase: tagBase, root: root };
+    }
+
+    log("info", "Game address: " + cfg.target);
+    if (cfg.direct) {
+      log("info", "Opening this game by its real address (it needs its own address to work)");
+      msg("Starting game\u2026");
+      f.addEventListener("load", function () { msg(""); focusGame(); log("info", "The frame finished loading"); });
+      f.src = cfg.target;
+      return;
+    }
+    msg("Fetching game page\u2026");
+    function prepLocal(html) {
+      var h = '<script>(' + cfg.hookSource + ')(' + JSON.stringify({ root: "", target: "" }).replace(/</g, "\\u003c") + ');<\/script>';
+      var a = /<head[^>]*>/i, b = /<html[^>]*>/i, put = function (m) { return m + h; };
+      html = a.test(html) ? html.replace(a, put) : b.test(html) ? html.replace(b, put) : h + html;
+      return { html: html, base: "", tagBase: "", root: "" };
+    }
+    var chain = cfg.inline != null ? Promise.resolve({ text: cfg.inline, url: cfg.target }) : tryFetch(cfg.target, "direct");
+    cfg.proxies.forEach(function (p, i) {
+      chain = chain.catch(function () {
+        return tryFetch(p.replace("{url}", encodeURIComponent(cfg.target)), "proxy " + (i + 1)).then(function (r) {
+          var u = cfg.target;
+          var last = u.split("?")[0].split("#")[0].split("/").pop();
+          if (u.indexOf("?") < 0 && u.indexOf("#") < 0 && last && last.indexOf(".") < 0 && u.slice(-1) !== "/") u += "/";
+          r.url = u;
+          return r;
+        });
+      });
+    });
+    chain.then(function (r) {
+      var scripts = (r.text.match(/<script\b/gi) || []).length;
+      var out = cfg.inline != null ? prepLocal(r.text) : prep(r.text, r.url);
+      pageBase = out.base;
+      if (r.url !== cfg.target) log("info", "The address redirected to: " + r.url);
+      log("info", out.tagBase ? "The page sets its own base address: " + out.tagBase : "The page has no base address of its own");
+      if (out.root) log("info", "Addresses like \"/file.js\" will be loaded from " + out.root + " (not from the file host)");
+      log("info", "The page contains " + scripts + " script tag" + (scripts === 1 ? "" : "s") +
+                  ". Its files will download from: " + out.base);
+      msg("Starting game\u2026");
+      var html = out.html, found = [], seen = {}, m;
+      var re = /<script\b(?![^>]*\btype\s*=\s*["']?module)[^>]*?\ssrc\s*=\s*(?:"([^"]*)"|'([^']*)')[^>]*>\s*<\/script>/gi;
+      while ((m = re.exec(html)) && found.length < 20) {
+        var su = "";
+        try { su = new URL(m[1] || m[2], out.base).href; } catch (e) {}
+        if (/^https?:/i.test(su) && !seen[su]) { seen[su] = true; found.push({ tag: m[0], url: su }); }
+      }
+      function reachable(u) {
+        var wait = new Promise(function (res) { setTimeout(function () { res(true); }, 6000); });
+        var test = fetch(u, { method: "HEAD", credentials: "omit" }).then(function (x) { return x.ok || (x.status >= 400 && x.status < 500 && x.status !== 403 && x.status !== 429); }, function () {
+          return fetch(u, { method: "HEAD", mode: "no-cors", credentials: "omit" }).then(function () { return true; }, function () { return false; });
+        });
+        return Promise.race([test, wait]);
+      }
+      Promise.all(found.map(function (t) {
+        return reachable(t.url).then(function (good) {
+          if (good) return;
+          log("warn", "Can't load " + t.url + " the normal way; fetching it another way before the game starts");
+return Promise.race([raceFetch(candidatesFor(t.url)), new Promise(function (yes, no) { setTimeout(function () { no(new Error("gave up after 8 s")); }, 8000); })]).then(function (res) {
+            goodLabel = res.via;
+            if (res.via !== "original") markBad(t.url);
+            var code = new TextDecoder().decode(res.body).replace(/<\/script/gi, "<\\/script");
+            // Keep the original tag's other attributes (such as data-swf-file-src, which the game reads with document.currentScript); only src is dropped.
+            var keep = (t.tag.match(/^<script\b([^>]*)>/i) || [0, ""])[1]
+              .replace(/(\s)src\s*=\s*(?:"[^"]*"|'[^']*')/i, "$1")
+              .replace(/(\s)integrity\s*=\s*(?:"[^"]*"|'[^']*')/i, "$1");
+            html = html.split(t.tag).join("<script" + keep + ">" + code + "<\/script>");
+            log("info", "Placed " + t.url + " straight into the page (via " + res.via + ")");
+          }, function (err) {
+            log("error", "Could not get " + t.url + " (" + ((err && err.message) || "blocked") + ")");
+          });
+        });
+      })).then(function () {
+        var hosts = Object.keys(badHosts);
+        if (hosts.length) {
+          var was = JSON.stringify({ root: out.root, target: r.url }).replace(/</g, "\\u003c");
+          var now = JSON.stringify({ root: out.root, target: r.url, bad: hosts }).replace(/</g, "\\u003c");
+          html = html.split(was).join(now);
+        }
+        f.srcdoc = html;
+      }).catch(function () { f.srcdoc = out.html; });
+      setTimeout(function () {
+        if (!loaded) log("warn", "Still waiting after 15 s: a file may be stuck downloading, or a script may be stalled");
+      }, 15000);
+    }).catch(function () {
+      msg("Couldn't fetch the game page.\n\n" + errs.join("\n") +
+          "\n\nThe site may not allow other pages to read it. Try turning on the proxy option, or a different game address.");
+      openPanel();
+    });
+  }
+
+  function buildShell(cfg) {
+    var consoleHtml = cfg.showConsole
+      ? '<button id="cp" type="button">console</button>' +
+        '<div id="cw"><div id="ch"><b>Console</b>' +
+        '<button id="cf" type="button">Problems only</button><button id="cy" type="button">Copy</button>' +
+        '<button id="cc" type="button">Clear</button><button id="cx" type="button">Close</button></div>' +
+        '<div id="cl"></div></div>'
+      : "";
+    return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + esc(cfg.title) + '</title>' +
+      '<link rel="icon" href="' + esc(cfg.icon) + '">' +
+      '<style>html,body{margin:0;height:100%;overflow:hidden;background:#000}' +
+      'iframe{border:0;width:100%;height:100%;display:block;background:#000}' +
+      '#s{position:fixed;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;' +
+      'font:14px system-ui,sans-serif;color:#ccc;background:#000;text-align:center;padding:24px;' +
+      'white-space:pre-line;z-index:2}' +
+      '#cp{position:fixed;left:8px;bottom:8px;z-index:6;font:11px ui-monospace,Menlo,Consolas,monospace;color:#bbb;' +
+      'background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:3px 9px;cursor:pointer;opacity:.7}' +
+      '#cp:hover{opacity:1}#cp.bad{color:#ff8a80;border-color:#ff8a80}' +
+      '#cw{position:fixed;left:0;right:0;bottom:0;height:38vh;z-index:7;display:none;flex-direction:column;' +
+      'background:rgba(12,13,17,.97);color:#d8d8d8;font:12px/1.45 ui-monospace,Menlo,Consolas,monospace;border-top:1px solid #333}' +
+      '#ch{display:flex;gap:8px;align-items:center;padding:6px 10px;border-bottom:1px solid #2a2a2a}' +
+      '#ch b{flex:1;font-weight:600}' +
+      '#ch button{font:11px system-ui,sans-serif;color:#ddd;background:#23262d;border:1px solid #3a3f49;border-radius:6px;padding:3px 9px;cursor:pointer}' +
+      '#cl{flex:1;overflow:auto;padding:6px 10px;white-space:pre-wrap;word-break:break-word}' +
+      '#cl div{padding:1px 0}#cl .t{color:#777;margin-right:8px}' +
+      '#cl .error{color:#ff8a80}#cl .warn{color:#ffd180}#cl .info{color:#9ecbff}#cl .log{color:#cfcfcf}#cl .n{color:#999;margin-left:6px}' +
+      '#cw.po #cl .info,#cw.po #cl .log{display:none}</style>' +
+      '</head><body><div id="s"></div>' +
+      '<iframe id="f" allowfullscreen allow="fullscreen *; autoplay *; gamepad *; clipboard-read *; clipboard-write *; ' +
+      'accelerometer *; gyroscope *; pointer-lock *"></iframe>' + consoleHtml +
+      '<script>(' + runner.toString() + ')(' + safeJSON(cfg) + ');<\/script></body></html>';
+  }
+
+  function openViaBlob(html) {
+    try {
+      var url = URL.createObjectURL(new Blob([html], { type: "text/html" }));
+      return window.open(url, "_blank");
+    } catch (e) { return null; }
+  }
+
+  function launch() {
+    if (!manualDisguise) pickRandomDisguise();
+    var lp = inlineFor($("target").value);
+    var g = lp ? { href: "Local file: " + lp.name } : normalizeGame($("target").value);
+    var c = normalizeSite($("cloak").value);
+    if (!g) { $("msg").textContent = "Pick a game first."; return; }
+    if (!c) { $("msg").textContent = "Enter a site to disguise the tab as."; return; }
+    $("msg").textContent = "";
+
+    var showConsole = $("showConsole").checked;
+    var html = buildShell({
+      target: g.href,
+      inline: lp ? lp.html : null,
+      title: $("title").value.trim() || defaultTitle(c),
+      icon: favicon(c),
+      proxies: $("useProxy").checked ? PROXIES : [],
+      confirmClose: $("confirmClose").checked,
+      showConsole: showConsole,
+      hookSource: hook.toString(),
+      direct: !lp && DIRECT_HOSTS.indexOf(g.hostname) > -1
+    });
+
+    function afterLaunch() {
+      if (!$("leave").checked) return;
+      setTimeout(function () {
+        try { window.top.location.replace(c.href); return; } catch (e) {}
+        try { window.location.replace(c.href); return; } catch (e) {}
+        try { window.location.href = c.href; } catch (e) {}
+      }, 600);
+    }
+
+    var w = null;
+    try {
+      w = window.open("about:blank", "_blank");
+      if (w) {
+        w.document.open();
+        w.document.write(html);
+        w.document.close();
+        afterLaunch();
+        return;
+      }
+    } catch (e) {
+      try { if (w) w.close(); } catch (e2) {}
+      w = null;
+    }
+
+    if (openViaBlob(html)) {
+      $("msg").textContent = "Opened, but this editor only allows a method that shows its domain in the address bar.";
+      afterLaunch();
+    } else {
+      $("msg").textContent = "Couldn't open a new tab. The editor is blocking pop-ups.";
+    }
+  }
+  $("go").onclick = launch;
+
+  renderGames();
+  pickRandomDisguise();
+})();
+</script>
+
